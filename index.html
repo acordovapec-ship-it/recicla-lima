@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🌱 Recicla Lima</title>
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f7fafc;
+            overflow: hidden;
+        }
+
+        .app-container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 400px;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+        }
+
+        .header {
+            padding: 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Filtros */
+        .filtros {
+            padding: 16px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .filtro-btn {
+            padding: 8px 16px;
+            border: 2px solid #e2e8f0;
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .filtro-btn:hover {
+            border-color: #667eea;
+            background: #f7fafc;
+        }
+
+        .filtro-btn.activo {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        /* Panel Lateral */
+        .panel-lateral {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .panel-lateral h2 {
+            font-size: 18px;
+            color: #2d3748;
+            margin-bottom: 16px;
+        }
+
+        .lista-puntos {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .punto-card {
+            padding: 16px;
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .punto-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+            transform: translateY(-2px);
+        }
+
+        .punto-card.seleccionado {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .punto-card h3 {
+            font-size: 16px;
+            color: #2d3748;
+            margin-bottom: 8px;
+        }
+
+        .direccion {
+            font-size: 14px;
+            color: #718096;
+            margin-bottom: 8px;
+        }
+
+        .tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .tag {
+            padding: 4px 10px;
+            background: #edf2f7;
+            color: #4a5568;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        /* Mapa */
+        #mapa {
+            flex: 1;
+            height: 100%;
+        }
+
+        /* Mensaje de error */
+        .error-msg {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #f56565;
+            color: white;
+            padding: 16px 24px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 9999;
+            max-width: 400px;
+        }
+
+        /* Scrollbar */
+        .panel-lateral::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .panel-lateral::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .panel-lateral::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 4px;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .app-container {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                height: 50vh;
+            }
+            
+            #mapa {
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Panel Lateral -->
+        <div class="sidebar">
+            <div class="header">
+                <h1>🌱 Recicla Lima</h1>
+                <p>Encuentra puntos de reciclaje cerca de ti</p>
+            </div>
+            
+            <div class="filtros" id="filtros"></div>
+            
+            <div class="panel-lateral">
+                <h2 id="contador">Puntos encontrados: 0</h2>
+                <div class="lista-puntos" id="lista-puntos"></div>
+            </div>
+        </div>
+        
+        <!-- Mapa -->
+        <div id="mapa"></div>
+    </div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    
+    <script>
+        // ============================================
+        // 🔥 TU DATA VA AQUÍ - REEMPLAZA CON TU GEOJSON
+        // ============================================
+        const puntosData = {
+            "type": "FeatureCollection",
+            "features": [
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-77.0400, -12.0500]
+                    },
+                    "properties": {
+                        "nombre": "Punto Limpio Plaza Lima",
+                        "direccion": "Av. España 123, Lima",
+                        "acepta": "Plástico, Papel, Vidrio",
+                        "horario": "Lun-Sáb 9:00-18:00"
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-77.0313, -12.1189]
+                    },
+                    "properties": {
+                        "nombre": "Eco-stand Miraflores",
+                        "direccion": "Parque Kennedy, Miraflores",
+                        "acepta": "Pilas, Electrónicos",
+                        "horario": "Lun-Dom 8:00-20:00"
+                    }
+                },
+                {
+                    "type": "Feature",
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [-77.0289, -12.0956]
+                    },
+                    "properties": {
+                        "nombre": "Punto Verde San Isidro",
+                        "direccion": "Av. Conquistadores 300, San Isidro",
+                        "acepta": "Plástico, Vidrio, Papel",
+                        "horario": "Lun-Vie 8:00-17:00"
+                    }
+                }
+            ]
+        };
+
+        // Variables globales
+        let mapa;
+        let marcadores = [];
+        let filtroActivo = 'todos';
+        let puntoSeleccionado = null;
+
+        // Función para mostrar errores
+        function mostrarError(mensaje) {
+            const div = document.createElement('div');
+            div.className = 'error-msg';
+            div.innerHTML = `<strong>Error:</strong> ${mensaje}`;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 5000);
+        }
+
+        // Inicializar el mapa
+        function inicializarMapa() {
+            try {
+                console.log('Iniciando mapa...');
+                
+                // Verificar que Leaflet se cargó
+                if (typeof L === 'undefined') {
+                    mostrarError('Leaflet no se cargó correctamente');
+                    return;
+                }
+
+                // Crear el mapa
+                mapa = L.map('mapa').setView([-12.0463, -77.0427], 12);
+                
+                // Agregar capa de OpenStreetMap
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+                    maxZoom: 19
+                }).addTo(mapa);
+                
+                console.log('Mapa creado exitosamente');
+                
+                // Verificar que la data es válida
+                if (!puntosData || !puntosData.features || !Array.isArray(puntosData.features)) {
+                    mostrarError('La data no tiene el formato correcto. Debe ser un GeoJSON válido.');
+                    return;
+                }
+
+                console.log(`Se encontraron ${puntosData.features.length} puntos`);
+                
+                // Mostrar puntos y crear interfaz
+                mostrarPuntos();
+                crearFiltros();
+                crearListaPuntos();
+                
+            } catch (error) {
+                console.error('Error al inicializar el mapa:', error);
+                mostrarError('Error al cargar el mapa: ' + error.message);
+            }
+        }
+
+        // Crear ícono personalizado
+        function crearIcono(tipo) {
+            const colores = {
+                plastico: '#FFD700',
+                papel: '#4169E1',
+                vidrio: '#228B22',
+                pilas: '#FF4500',
+                electronico: '#800080',
+                default: '#808080'
+            };
+
+            let color = colores.default;
+            if (tipo) {
+                const tipoLower = tipo.toLowerCase();
+                if (tipoLower.includes('plástic') || tipoLower.includes('plastic')) color = colores.plastico;
+                else if (tipoLower.includes('papel')) color = colores.papel;
+                else if (tipoLower.includes('vidrio')) color = colores.vidrio;
+                else if (tipoLower.includes('pila')) color = colores.pilas;
+                else if (tipoLower.includes('electrón') || tipoLower.includes('electron')) color = colores.electronico;
+            }
+
+            return L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="
+                    background-color: ${color};
+                    width: 30px;
+                    height: 30px;
+                    border-radius: 50%;
+                    border: 
