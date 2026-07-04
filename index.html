@@ -2,364 +2,373 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>🌱 Recicla Lima</title>
-    
-    <!-- Leaflet CSS -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-    
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f7fafc;
-            overflow: hidden;
-        }
-
-        .app-container {
-            display: flex;
-            height: 100vh;
-        }
-
-        /* Sidebar */
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; }
+        .app { display: flex; height: 100vh; }
         .sidebar {
-            width: 400px;
+            width: 380px;
             background: white;
             display: flex;
             flex-direction: column;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
         }
-
         .header {
-            padding: 24px;
+            padding: 20px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-
-        .header h1 {
-            font-size: 28px;
-            margin-bottom: 8px;
-        }
-
-        .header p {
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        /* Filtros */
+        .header h1 { font-size: 24px; margin-bottom: 5px; }
+        .header p { font-size: 13px; opacity: 0.9; }
         .filtros {
-            padding: 16px;
+            padding: 12px;
             display: flex;
             flex-wrap: wrap;
-            gap: 8px;
+            gap: 6px;
             border-bottom: 1px solid #e2e8f0;
         }
-
         .filtro-btn {
-            padding: 8px 16px;
+            padding: 6px 12px;
             border: 2px solid #e2e8f0;
             background: white;
             border-radius: 20px;
             cursor: pointer;
-            font-size: 14px;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
+            font-size: 12px;
         }
-
-        .filtro-btn:hover {
-            border-color: #667eea;
-            background: #f7fafc;
-        }
-
         .filtro-btn.activo {
             background: #667eea;
             color: white;
             border-color: #667eea;
         }
-
-        /* Panel Lateral */
-        .panel-lateral {
+        .lista {
             flex: 1;
             overflow-y: auto;
-            padding: 16px;
+            padding: 12px;
         }
-
-        .panel-lateral h2 {
-            font-size: 18px;
+        .lista h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
             color: #2d3748;
-            margin-bottom: 16px;
         }
-
-        .lista-puntos {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-        }
-
-        .punto-card {
-            padding: 16px;
+        .card {
+            padding: 12px;
             background: white;
             border: 2px solid #e2e8f0;
-            border-radius: 12px;
+            border-radius: 10px;
             cursor: pointer;
-            transition: all 0.2s;
+            margin-bottom: 10px;
         }
-
-        .punto-card:hover {
+        .card:hover {
             border-color: #667eea;
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
             transform: translateY(-2px);
         }
-
-        .punto-card.seleccionado {
-            border-color: #667eea;
-            background: #f0f4ff;
-        }
-
-        .punto-card h3 {
-            font-size: 16px;
-            color: #2d3748;
-            margin-bottom: 8px;
-        }
-
-        .direccion {
-            font-size: 14px;
-            color: #718096;
-            margin-bottom: 8px;
-        }
-
-        .tags {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 6px;
-        }
-
+        .card h3 { font-size: 15px; margin-bottom: 5px; }
+        .card p { font-size: 13px; color: #718096; margin-bottom: 4px; }
+        .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
         .tag {
-            padding: 4px 10px;
+            padding: 3px 8px;
             background: #edf2f7;
-            color: #4a5568;
-            border-radius: 12px;
-            font-size: 12px;
+            border-radius: 10px;
+            font-size: 11px;
         }
-
-        /* Mapa */
-        #mapa {
-            flex: 1;
-            height: 100%;
-        }
-
-        /* Mensaje de error */
-        .error-msg {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: #f56565;
-            color: white;
-            padding: 16px 24px;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-            z-index: 9999;
-            max-width: 400px;
-        }
-
-        /* Scrollbar */
-        .panel-lateral::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        .panel-lateral::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        .panel-lateral::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 4px;
-        }
-
-        /* Responsive */
-        @media (max-width: 768px) {
-            .app-container {
-                flex-direction: column;
-            }
-            
-            .sidebar {
-                width: 100%;
-                height: 50vh;
-            }
-            
-            #mapa {
-                height: 50vh;
-            }
-        }
+        #mapa { flex: 1; height: 100vh; }
     </style>
 </head>
 <body>
-    <div class="app-container">
-        <!-- Panel Lateral -->
+    <div class="app">
         <div class="sidebar">
             <div class="header">
                 <h1>🌱 Recicla Lima</h1>
-                <p>Encuentra puntos de reciclaje cerca de ti</p>
+                <p>Puntos de reciclaje en Lima</p>
             </div>
-            
             <div class="filtros" id="filtros"></div>
-            
-            <div class="panel-lateral">
-                <h2 id="contador">Puntos encontrados: 0</h2>
-                <div class="lista-puntos" id="lista-puntos"></div>
+            <div class="lista">
+                <h2 id="contador">Puntos: 0</h2>
+                <div id="cards"></div>
             </div>
         </div>
-        
-        <!-- Mapa -->
         <div id="mapa"></div>
     </div>
 
-    <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    
     <script>
-        // ============================================
-        // 🔥 TU DATA VA AQUÍ - REEMPLAZA CON TU GEOJSON
-        // ============================================
-        const puntosData = {
-            "type": "FeatureCollection",
-            "features": [
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [-77.0400, -12.0500]
-                    },
-                    "properties": {
-                        "nombre": "Punto Limpio Plaza Lima",
-                        "direccion": "Av. España 123, Lima",
-                        "acepta": "Plástico, Papel, Vidrio",
-                        "horario": "Lun-Sáb 9:00-18:00"
-                    }
-                },
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [-77.0313, -12.1189]
-                    },
-                    "properties": {
-                        "nombre": "Eco-stand Miraflores",
-                        "direccion": "Parque Kennedy, Miraflores",
-                        "acepta": "Pilas, Electrónicos",
-                        "horario": "Lun-Dom 8:00-20:00"
-                    }
-                },
-                {
-                    "type": "Feature",
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [-77.0289, -12.0956]
-                    },
-                    "properties": {
-                        "nombre": "Punto Verde San Isidro",
-                        "direccion": "Av. Conquistadores 300, San Isidro",
-                        "acepta": "Plástico, Vidrio, Papel",
-                        "horario": "Lun-Vie 8:00-17:00"
-                    }
-                }
-            ]
-        };
+        // 25 PUNTOS DE RECICLAJE SELECCIONADOS
+        const puntos = [
+            {
+                nombre: "Estación Reciclame",
+                lat: -12.1303084, lng: -77.0176149,
+                operador: "Repsol",
+                materiales: ["Varios"]
+            },
+            {
+                nombre: "Recidar",
+                lat: -12.1963754, lng: -77.0150664,
+                direccion: "Calle Bello Horizonte, Manzana U Lote 2",
+                materiales: ["Varios"]
+            },
+            {
+                nombre: "Estación de Reciclaje San Isidro",
+                lat: -12.1058165, lng: -77.0163431,
+                operador: "Municipalidad de San Isidro",
+                horario: "24/7",
+                materiales: ["Vidrio", "Papel", "Plástico"]
+            },
+            {
+                nombre: "Zona de Reciclaje de Baterías",
+                lat: -12.1353507, lng: -77.0223692,
+                descripcion: "Punto principal de acopio de baterías en Barranco",
+                email: "reciclame@utec.edu.pe",
+                materiales: ["Baterías"]
+            },
+            {
+                nombre: "Contenedor Municipal Surco",
+                lat: -12.1394119, lng: -76.999612,
+                operador: "Municipalidad de Surco",
+                materiales: ["Latas", "Vidrio", "Papel"]
+            },
+            {
+                nombre: "Contenedor Vidrio/Papel/Plástico",
+                lat: -12.0663671, lng: -77.0617985,
+                materiales: ["Latas", "Cartón", "Vidrio", "Papel", "Plástico"]
+            },
+            {
+                nombre: "Contenedor Múltiple",
+                lat: -12.0674394, lng: -77.0645136,
+                materiales: ["Latas", "Cartón", "Vidrio", "Papel", "Plástico"]
+            },
+            {
+                nombre: "Contenedor Plástico",
+                lat: -12.0578169, lng: -77.0813299,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor Orgánico",
+                lat: -12.0967539, lng: -77.0667351,
+                materiales: ["Residuos Verdes"]
+            },
+            {
+                nombre: "Contenedor Plástico Blanco",
+                lat: -12.0702424, lng: -77.0616682,
+                materiales: ["Botellas Plásticas", "Tapas"]
+            },
+            {
+                nombre: "Contenedor Papel Verde",
+                lat: -12.0702504, lng: -77.0616698,
+                materiales: ["Cartón", "Papel"]
+            },
+            {
+                nombre: "Contenedor PET",
+                lat: -12.0752804, lng: -77.053767,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor PET Centro Lima",
+                lat: -12.0447545, lng: -77.0307409,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor PET Norte",
+                lat: -12.0957098, lng: -77.0741867,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor Múltiple ATE",
+                lat: -12.1061877, lng: -76.9441014,
+                materiales: ["PET", "Latas", "Cartón", "Vidrio", "Papel", "Plástico"]
+            },
+            {
+                nombre: "Contenedor Ecológico",
+                lat: -12.0853667, lng: -76.9695038,
+                materiales: ["Cartón", "Vidrio", "Papel", "Plástico"]
+            },
+            {
+                nombre: "Contenedor Plástico",
+                lat: -12.0597517, lng: -77.0830084,
+                materiales: ["Plástico"]
+            },
+            {
+                nombre: "Contenedor Vidrio",
+                lat: -12.1107122, lng: -77.0089571,
+                materiales: ["Botellas de Vidrio"]
+            },
+            {
+                nombre: "Contenedor Plástico",
+                lat: -12.1107117, lng: -77.0089503,
+                materiales: ["Plástico"]
+            },
+            {
+                nombre: "Contenedor Papel",
+                lat: -12.1107116, lng: -77.0089434,
+                materiales: ["Cartón", "Papel"]
+            },
+            {
+                nombre: "Contenedor PET",
+                lat: -12.0930055, lng: -77.0687664,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor PET",
+                lat: -12.0918337, lng: -77.0739792,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor PET",
+                lat: -12.0962031, lng: -77.0744788,
+                materiales: ["Botellas Plásticas"]
+            },
+            {
+                nombre: "Contenedor Múltiple",
+                lat: -12.0634445, lng: -77.0364901,
+                materiales: ["Vidrio", "Papel", "Plástico", "Metal"]
+            },
+            {
+                nombre: "Contenedor Baterías y Electrónicos",
+                lat: -12.0633041, lng: -77.0363805,
+                materiales: ["Baterías", "Electrónicos"]
+            }
+        ];
 
-        // Variables globales
         let mapa;
         let marcadores = [];
         let filtroActivo = 'todos';
-        let puntoSeleccionado = null;
 
-        // Función para mostrar errores
-        function mostrarError(mensaje) {
-            const div = document.createElement('div');
-            div.className = 'error-msg';
-            div.innerHTML = `<strong>Error:</strong> ${mensaje}`;
-            document.body.appendChild(div);
-            setTimeout(() => div.remove(), 5000);
+        // Inicializar mapa
+        function iniciar() {
+            mapa = L.map('mapa').setView([-12.0463, -77.0427], 11);
+            
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap'
+            }).addTo(mapa);
+
+            crearFiltros();
+            mostrarPuntos();
         }
 
-        // Inicializar el mapa
-        function inicializarMapa() {
-            try {
-                console.log('Iniciando mapa...');
-                
-                // Verificar que Leaflet se cargó
-                if (typeof L === 'undefined') {
-                    mostrarError('Leaflet no se cargó correctamente');
-                    return;
-                }
-
-                // Crear el mapa
-                mapa = L.map('mapa').setView([-12.0463, -77.0427], 12);
-                
-                // Agregar capa de OpenStreetMap
-                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-                    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-                    maxZoom: 19
-                }).addTo(mapa);
-                
-                console.log('Mapa creado exitosamente');
-                
-                // Verificar que la data es válida
-                if (!puntosData || !puntosData.features || !Array.isArray(puntosData.features)) {
-                    mostrarError('La data no tiene el formato correcto. Debe ser un GeoJSON válido.');
-                    return;
-                }
-
-                console.log(`Se encontraron ${puntosData.features.length} puntos`);
-                
-                // Mostrar puntos y crear interfaz
-                mostrarPuntos();
-                crearFiltros();
-                crearListaPuntos();
-                
-            } catch (error) {
-                console.error('Error al inicializar el mapa:', error);
-                mostrarError('Error al cargar el mapa: ' + error.message);
-            }
-        }
-
-        // Crear ícono personalizado
-        function crearIcono(tipo) {
-            const colores = {
-                plastico: '#FFD700',
-                papel: '#4169E1',
-                vidrio: '#228B22',
-                pilas: '#FF4500',
-                electronico: '#800080',
-                default: '#808080'
-            };
-
-            let color = colores.default;
-            if (tipo) {
-                const tipoLower = tipo.toLowerCase();
-                if (tipoLower.includes('plástic') || tipoLower.includes('plastic')) color = colores.plastico;
-                else if (tipoLower.includes('papel')) color = colores.papel;
-                else if (tipoLower.includes('vidrio')) color = colores.vidrio;
-                else if (tipoLower.includes('pila')) color = colores.pilas;
-                else if (tipoLower.includes('electrón') || tipoLower.includes('electron')) color = colores.electronico;
+        // Crear ícono según material principal
+        function crearIcono(materiales) {
+            let color = '#808080';
+            let emoji = '♻️';
+            
+            if (materiales.includes('Plástico') || materiales.includes('PET') || materiales.includes('Botellas Plásticas')) {
+                color = '#FFD700'; emoji = '🥤';
+            } else if (materiales.includes('Papel') || materiales.includes('Cartón')) {
+                color = '#4169E1'; emoji = '📄';
+            } else if (materiales.includes('Vidrio') || materiales.includes('Botellas de Vidrio')) {
+                color = '#228B22'; emoji = '🍾';
+            } else if (materiales.includes('Baterías')) {
+                color = '#FF4500'; emoji = '🔋';
+            } else if (materiales.includes('Electrónicos')) {
+                color = '#800080'; emoji = '📱';
             }
 
             return L.divIcon({
-                className: 'custom-marker',
+                className: '',
                 html: `<div style="
                     background-color: ${color};
-                    width: 30px;
-                    height: 30px;
+                    width: 32px;
+                    height: 32px;
                     border-radius: 50%;
-                    border: 
+                    border: 3px solid white;
+                    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 16px;
+                ">${emoji}</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+            });
+        }
+
+        // Mostrar puntos en el mapa
+        function mostrarPuntos() {
+            marcadores.forEach(m => mapa.removeLayer(m));
+            marcadores = [];
+
+            const filtrados = filtroActivo === 'todos' 
+                ? puntos 
+                : puntos.filter(p => 
+                    p.materiales.some(m => m.toLowerCase().includes(filtroActivo))
+                );
+
+            filtrados.forEach(p => {
+                const marcador = L.marker([p.lat, p.lng], {
+                    icon: crearIcono(p.materiales)
+                }).addTo(mapa);
+
+                let popup = `<div style="min-width: 200px;">
+                    <h3 style="margin: 0 0 8px 0;">${p.nombre}</h3>`;
+                
+                if (p.direccion) popup += `<p style="margin: 4px 0;">📍 ${p.direccion}</p>`;
+                if (p.operador) popup += `<p style="margin: 4px 0;">🏢 ${p.operador}</p>`;
+                if (p.horario) popup += `<p style="margin: 4px 0;">🕐 ${p.horario}</p>`;
+                if (p.descripcion) popup += `<p style="margin: 4px 0;">ℹ️ ${p.descripcion}</p>`;
+                popup += `<p style="margin: 4px 0;">♻️ ${p.materiales.join(', ')}</p>`;
+                popup += `</div>`;
+
+                marcador.bindPopup(popup);
+                marcadores.push(marcador);
+            });
+
+            document.getElementById('contador').textContent = `Puntos: ${filtrados.length}`;
+            crearCards(filtrados);
+        }
+
+        // Crear filtros
+        function crearFiltros() {
+            const filtros = [
+                { id: 'todos', nombre: '🌍 Todos' },
+                { id: 'plástic', nombre: '🥤 Plástico' },
+                { id: 'papel', nombre: '📄 Papel' },
+                { id: 'vidrio', nombre: '🍾 Vidrio' },
+                { id: 'batería', nombre: '🔋 Baterías' },
+                { id: 'electrón', nombre: '📱 Electrónicos' }
+            ];
+
+            const cont = document.getElementById('filtros');
+            cont.innerHTML = '';
+
+            filtros.forEach(f => {
+                const btn = document.createElement('button');
+                btn.className = 'filtro-btn' + (filtroActivo === f.id ? ' activo' : '');
+                btn.textContent = f.nombre;
+                btn.onclick = () => {
+                    filtroActivo = f.id;
+                    crearFiltros();
+                    mostrarPuntos();
+                };
+                cont.appendChild(btn);
+            });
+        }
+
+        // Crear tarjetas laterales
+        function crearCards(puntos) {
+            const cont = document.getElementById('cards');
+            cont.innerHTML = '';
+
+            puntos.forEach(p => {
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.innerHTML = `
+                    <h3>${p.nombre}</h3>
+                    ${p.direccion ? `<p>📍 ${p.direccion}</p>` : ''}
+                    ${p.operador ? `<p>🏢 ${p.operador}</p>` : ''}
+                    <div class="tags">
+                        ${p.materiales.map(m => `<span class="tag">${m}</span>`).join('')}
+                    </div>
+                `;
+                card.onclick = () => {
+                    mapa.flyTo([p.lat, p.lng], 16, { duration: 1.5 });
+                };
+                cont.appendChild(card);
+            });
+        }
+
+        // Iniciar cuando cargue
+        window.onload = iniciar;
+    </script>
+</body>
+</html>
