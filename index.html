@@ -2,12 +2,23 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🌱 Recicla Lima</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; }
-        .app { display: flex; height: 100vh; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        
+        /* Layout principal */
+        .app { 
+            display: flex; 
+            height: 100vh; 
+            height: 100dvh; /* Dynamic viewport height para móviles */
+            position: relative;
+            overflow: hidden;
+        }
+        
+        /* Sidebar - Desktop */
         .sidebar {
             width: 380px;
             background: white;
@@ -15,14 +26,162 @@
             flex-direction: column;
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
             z-index: 1000;
+            transition: transform 0.3s ease;
         }
+        
+        /* Sidebar - Mobile */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                width: 100%;
+                transform: translateX(-100%);
+                z-index: 2000;
+            }
+            
+            .sidebar.activo {
+                transform: translateX(0);
+            }
+            
+            .overlay {
+                display: none;
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0,0,0,0.5);
+                z-index: 1500;
+                backdrop-filter: blur(4px);
+            }
+            
+            .overlay.activo {
+                display: block;
+            }
+        }
+        
         .header {
-            padding: 20px;
+            padding: 16px;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
         }
-        .header h1 { font-size: 24px; margin-bottom: 5px; }
-        .header p { font-size: 13px; opacity: 0.9; }
+        
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .header h1 { 
+            font-size: 20px; 
+            margin: 0;
+        }
+        
+        .header p { 
+            font-size: 12px; 
+            opacity: 0.9;
+            margin: 0;
+        }
+        
+        /* Botón menú móvil */
+        .btn-menu {
+            display: none;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 20px;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        @media (max-width: 768px) {
+            .btn-menu {
+                display: flex;
+            }
+        }
+        
+        .eco-coins {
+            background: rgba(255,255,255,0.2);
+            border-radius: 12px;
+            padding: 12px;
+            margin-top: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            backdrop-filter: blur(10px);
+        }
+        
+        .coins-display {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .coin-icon {
+            width: 32px;
+            height: 32px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .coins-amount {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .coins-label {
+            font-size: 10px;
+            opacity: 0.9;
+        }
+        
+        .btn-tienda {
+            background: white;
+            color: #667eea;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: transform 0.2s;
+        }
+        
+        .btn-tienda:active {
+            transform: scale(0.95);
+        }
+        
+        .ubicacion-info {
+            padding: 10px 16px;
+            background: #f7fafc;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: #4a5568;
+        }
+        
+        .ubicacion-info.loading {
+            color: #667eea;
+        }
+        
+        .ubicacion-info.error {
+            color: #e53e3e;
+        }
+        
         .filtros {
             padding: 12px;
             display: flex;
@@ -30,6 +189,7 @@
             gap: 6px;
             border-bottom: 1px solid #e2e8f0;
         }
+        
         .filtro-btn {
             padding: 6px 12px;
             border: 2px solid #e2e8f0;
@@ -37,275 +197,815 @@
             border-radius: 20px;
             cursor: pointer;
             font-size: 12px;
+            white-space: nowrap;
         }
+        
         .filtro-btn.activo {
             background: #667eea;
             color: white;
             border-color: #667eea;
         }
+        
+        .filtro-btn:active {
+            transform: scale(0.95);
+        }
+        
+        .ordenar-container {
+            padding: 8px 12px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            gap: 8px;
+        }
+        
+        .ordenar-btn {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+        }
+        
+        .ordenar-btn.activo {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+        
+        .ordenar-btn:active {
+            transform: scale(0.98);
+        }
+        
         .lista {
             flex: 1;
             overflow-y: auto;
             padding: 12px;
+            -webkit-overflow-scrolling: touch;
         }
+        
         .lista h2 {
-            font-size: 16px;
+            font-size: 14px;
             margin-bottom: 12px;
             color: #2d3748;
         }
+        
         .card {
             padding: 12px;
             background: white;
             border: 2px solid #e2e8f0;
-            border-radius: 10px;
+            border-radius: 12px;
             cursor: pointer;
             margin-bottom: 10px;
+            transition: all 0.2s;
+            position: relative;
         }
+        
+        .card:active {
+            transform: scale(0.98);
+        }
+        
         .card:hover {
             border-color: #667eea;
-            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
-        .card h3 { font-size: 15px; margin-bottom: 5px; }
-        .card p { font-size: 13px; color: #718096; margin-bottom: 4px; }
-        .tags { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+        
+        .card.cercano {
+            border-color: #48bb78;
+            background: #f0fff4;
+        }
+        
+        .card h3 { 
+            font-size: 14px; 
+            margin-bottom: 6px;
+            padding-right: 70px;
+        }
+        
+        .card p { 
+            font-size: 12px; 
+            color: #718096; 
+            margin-bottom: 4px;
+        }
+        
+        .tags { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 4px; 
+            margin-top: 8px; 
+        }
+        
         .tag {
-            padding: 3px 8px;
+            padding: 4px 8px;
             background: #edf2f7;
-            border-radius: 10px;
-            font-size: 11px;
+            border-radius: 12px;
+            font-size: 10px;
         }
-        #mapa { flex: 1; height: 100vh; }
+        
+        .distancia-badge {
+            position: absolute;
+            top: 12px;
+            right: 12px;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        
+        .distancia-badge.lejano {
+            background: linear-gradient(135deg, #ed8936, #dd6b20);
+        }
+        
+        .btn-reciclar {
+            margin-top: 10px;
+            background: linear-gradient(135deg, #48bb78, #38a169);
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: bold;
+            width: 100%;
+        }
+        
+        .btn-reciclar:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-reciclar:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        #mapa { 
+            flex: 1; 
+            height: 100vh;
+            height: 100dvh;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .btn-mi-ubicacion {
+            position: absolute;
+            bottom: 80px;
+            right: 16px;
+            background: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            font-size: 24px;
+            z-index: 1000;
+            transition: transform 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-mi-ubicacion:active {
+            transform: scale(0.9);
+        }
+        
+        /* Botón flotante para abrir menú en móvil */
+        .btn-flotante-menu {
+            display: none;
+            position: absolute;
+            bottom: 16px;
+            left: 16px;
+            background: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            z-index: 1000;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        @media (max-width: 768px) {
+            .btn-flotante-menu {
+                display: flex;
+            }
+        }
+        
+        .btn-flotante-menu:active {
+            transform: scale(0.95);
+        }
+        
+        /* Modal Tienda - Desktop */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+        }
+        
+        .modal-overlay.activo {
+            display: flex;
+        }
+        
+        .modal {
+            background: white;
+            border-radius: 20px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow: hidden;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+        
+        /* Modal Tienda - Mobile */
+        @media (max-width: 768px) {
+            .modal {
+                width: 100%;
+                height: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+            }
+            
+            .modal-body {
+                max-height: calc(100vh - 140px);
+            }
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .modal-header h2 {
+            font-size: 20px;
+            margin: 0;
+        }
+        
+        .btn-cerrar {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .btn-cerrar:active {
+            transform: scale(0.9);
+        }
+        
+        .modal-body {
+            padding: 16px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        .saldo-banner {
+            margin-bottom: 16px;
+            padding: 16px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            border-radius: 12px;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .saldo-banner span:first-child {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .saldo-banner span:last-child {
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .recompensas-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 12px;
+        }
+        
+        @media (max-width: 480px) {
+            .recompensas-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .recompensa-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .recompensa-card:active {
+            transform: scale(0.98);
+        }
+        
+        .recompensa-card:hover {
+            border-color: #667eea;
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.2);
+        }
+        
+        .recompensa-card.agotado {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .recompensa-icon {
+            font-size: 40px;
+            margin-bottom: 8px;
+        }
+        
+        .recompensa-nombre {
+            font-size: 15px;
+            font-weight: bold;
+            color: #2d3748;
+            margin-bottom: 4px;
+        }
+        
+        .recompensa-desc {
+            font-size: 12px;
+            color: #718096;
+            margin-bottom: 12px;
+        }
+        
+        .recompensa-precio {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            background: linear-gradient(135deg, #FFD700, #FFA500);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .btn-canjear {
+            margin-top: 12px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .btn-canjear:active {
+            transform: scale(0.98);
+        }
+        
+        .btn-canjear:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+        }
+        
+        .cupon-codigo {
+            background: #f7fafc;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: monospace;
+            font-size: 16px;
+            font-weight: bold;
+            color: #667eea;
+            text-align: center;
+            margin-top: 8px;
+            letter-spacing: 2px;
+        }
+        
+        /* Notificación */
+        .notificacion {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: white;
+            padding: 14px 24px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            display: none;
+            align-items: center;
+            gap: 12px;
+            z-index: 3000;
+            animation: slideUp 0.3s ease;
+            max-width: 90%;
+            width: auto;
+        }
+        
+        @media (max-width: 768px) {
+            .notificacion {
+                bottom: 100px;
+                left: 16px;
+                right: 16px;
+                transform: none;
+                width: auto;
+            }
+        }
+        
+        .notificacion.activo {
+            display: flex;
+        }
+        
+        @keyframes slideUp {
+            from { transform: translateY(100px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        
+        .notificacion-icon {
+            font-size: 24px;
+        }
+        
+        .notificacion-text {
+            font-weight: bold;
+            color: #2d3748;
+            font-size: 14px;
+        }
+        
+        /* Scrollbar personalizado */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
     </style>
 </head>
 <body>
     <div class="app">
-        <div class="sidebar">
+        <div class="overlay" id="overlay" onclick="toggleMenu()"></div>
+        
+        <div class="sidebar" id="sidebar">
             <div class="header">
-                <h1>🌱 Recicla Lima</h1>
-                <p>Puntos de reciclaje en Lima</p>
+                <div class="header-top">
+                    <div>
+                        <h1>🌱 Recicla Lima</h1>
+                        <p>Puntos de reciclaje</p>
+                    </div>
+                    <button class="btn-menu" onclick="toggleMenu()">✕</button>
+                </div>
+                <div class="eco-coins">
+                    <div class="coins-display">
+                        <div class="coin-icon">🪙</div>
+                        <div>
+                            <div class="coins-amount" id="coinsBalance">0</div>
+                            <div class="coins-label">EcoCoins</div>
+                        </div>
+                    </div>
+                    <button class="btn-tienda" onclick="abrirTienda()">🛒 Tienda</button>
+                </div>
             </div>
+            
+            <div class="ubicacion-info" id="ubicacionInfo">
+                <span>📍</span>
+                <span id="ubicacionTexto">Obteniendo ubicación...</span>
+            </div>
+            
             <div class="filtros" id="filtros"></div>
+            
+            <div class="ordenar-container">
+                <button class="ordenar-btn activo" data-orden="distancia" onclick="ordenarPor('distancia')">📍 Cercanos</button>
+                <button class="ordenar-btn" data-orden="nombre" onclick="ordenarPor('nombre')">🔤 A-Z</button>
+            </div>
+            
             <div class="lista">
                 <h2 id="contador">Puntos: 0</h2>
                 <div id="cards"></div>
             </div>
         </div>
-        <div id="mapa"></div>
+        
+        <div id="mapa">
+            <button class="btn-flotante-menu" onclick="toggleMenu()">
+                <span>☰</span>
+                <span>Puntos</span>
+            </button>
+            <button class="btn-mi-ubicacion" onclick="centrarEnMiUbicacion()" title="Mi ubicación">📍</button>
+        </div>
+    </div>
+
+    <!-- Modal Tienda -->
+    <div class="modal-overlay" id="modalTienda">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>🛒 Tienda de Recompensas</h2>
+                <button class="btn-cerrar" onclick="cerrarTienda()">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="saldo-banner">
+                    <span>Tu saldo:</span>
+                    <span><span id="tiendaCoins">0</span> 🪙</span>
+                </div>
+                <div class="recompensas-grid" id="recompensasGrid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notificación -->
+    <div class="notificacion" id="notificacion">
+        <div class="notificacion-icon">✅</div>
+        <div class="notificacion-text" id="notificacionText"></div>
     </div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
-        // 25 PUNTOS DE RECICLAJE SELECCIONADOS
         const puntos = [
-            {
-                nombre: "Estación Reciclame",
-                lat: -12.1303084, lng: -77.0176149,
-                operador: "Repsol",
-                materiales: ["Varios"]
-            },
-            {
-                nombre: "Recidar",
-                lat: -12.1963754, lng: -77.0150664,
-                direccion: "Calle Bello Horizonte, Manzana U Lote 2",
-                materiales: ["Varios"]
-            },
-            {
-                nombre: "Estación de Reciclaje San Isidro",
-                lat: -12.1058165, lng: -77.0163431,
-                operador: "Municipalidad de San Isidro",
-                horario: "24/7",
-                materiales: ["Vidrio", "Papel", "Plástico"]
-            },
-            {
-                nombre: "Zona de Reciclaje de Baterías",
-                lat: -12.1353507, lng: -77.0223692,
-                descripcion: "Punto principal de acopio de baterías en Barranco",
-                email: "reciclame@utec.edu.pe",
-                materiales: ["Baterías"]
-            },
-            {
-                nombre: "Contenedor Municipal Surco",
-                lat: -12.1394119, lng: -76.999612,
-                operador: "Municipalidad de Surco",
-                materiales: ["Latas", "Vidrio", "Papel"]
-            },
-            {
-                nombre: "Contenedor Vidrio/Papel/Plástico",
-                lat: -12.0663671, lng: -77.0617985,
-                materiales: ["Latas", "Cartón", "Vidrio", "Papel", "Plástico"]
-            },
-            {
-                nombre: "Contenedor Múltiple",
-                lat: -12.0674394, lng: -77.0645136,
-                materiales: ["Latas", "Cartón", "Vidrio", "Papel", "Plástico"]
-            },
-            {
-                nombre: "Contenedor Plástico",
-                lat: -12.0578169, lng: -77.0813299,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor Orgánico",
-                lat: -12.0967539, lng: -77.0667351,
-                materiales: ["Residuos Verdes"]
-            },
-            {
-                nombre: "Contenedor Plástico Blanco",
-                lat: -12.0702424, lng: -77.0616682,
-                materiales: ["Botellas Plásticas", "Tapas"]
-            },
-            {
-                nombre: "Contenedor Papel Verde",
-                lat: -12.0702504, lng: -77.0616698,
-                materiales: ["Cartón", "Papel"]
-            },
-            {
-                nombre: "Contenedor PET",
-                lat: -12.0752804, lng: -77.053767,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor PET Centro Lima",
-                lat: -12.0447545, lng: -77.0307409,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor PET Norte",
-                lat: -12.0957098, lng: -77.0741867,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor Múltiple ATE",
-                lat: -12.1061877, lng: -76.9441014,
-                materiales: ["PET", "Latas", "Cartón", "Vidrio", "Papel", "Plástico"]
-            },
-            {
-                nombre: "Contenedor Ecológico",
-                lat: -12.0853667, lng: -76.9695038,
-                materiales: ["Cartón", "Vidrio", "Papel", "Plástico"]
-            },
-            {
-                nombre: "Contenedor Plástico",
-                lat: -12.0597517, lng: -77.0830084,
-                materiales: ["Plástico"]
-            },
-            {
-                nombre: "Contenedor Vidrio",
-                lat: -12.1107122, lng: -77.0089571,
-                materiales: ["Botellas de Vidrio"]
-            },
-            {
-                nombre: "Contenedor Plástico",
-                lat: -12.1107117, lng: -77.0089503,
-                materiales: ["Plástico"]
-            },
-            {
-                nombre: "Contenedor Papel",
-                lat: -12.1107116, lng: -77.0089434,
-                materiales: ["Cartón", "Papel"]
-            },
-            {
-                nombre: "Contenedor PET",
-                lat: -12.0930055, lng: -77.0687664,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor PET",
-                lat: -12.0918337, lng: -77.0739792,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor PET",
-                lat: -12.0962031, lng: -77.0744788,
-                materiales: ["Botellas Plásticas"]
-            },
-            {
-                nombre: "Contenedor Múltiple",
-                lat: -12.0634445, lng: -77.0364901,
-                materiales: ["Vidrio", "Papel", "Plástico", "Metal"]
-            },
-            {
-                nombre: "Contenedor Baterías y Electrónicos",
-                lat: -12.0633041, lng: -77.0363805,
-                materiales: ["Baterías", "Electrónicos"]
-            }
+            { nombre: "Estación Reciclame", lat: -12.1303084, lng: -77.0176149, operador: "Repsol", materiales: ["Varios"] },
+            { nombre: "Recidar", lat: -12.1963754, lng: -77.0150664, direccion: "Calle Bello Horizonte", materiales: ["Varios"] },
+            { nombre: "Estación San Isidro", lat: -12.1058165, lng: -77.0163431, operador: "Municipalidad", horario: "24/7", materiales: ["Vidrio", "Papel", "Plástico"] },
+            { nombre: "Zona Baterías Barranco", lat: -12.1353507, lng: -77.0223692, descripcion: "Punto principal de baterías", materiales: ["Baterías"] },
+            { nombre: "Contenedor Surco", lat: -12.1394119, lng: -76.999612, operador: "Municipalidad", materiales: ["Latas", "Vidrio", "Papel"] },
+            { nombre: "Contenedor Múltiple", lat: -12.0663671, lng: -77.0617985, materiales: ["Latas", "Cartón", "Vidrio", "Papel", "Plástico"] },
+            { nombre: "Contenedor Plástico", lat: -12.0578169, lng: -77.0813299, materiales: ["Botellas Plásticas"] },
+            { nombre: "Contenedor Orgánico", lat: -12.0967539, lng: -77.0667351, materiales: ["Residuos Verdes"] },
+            { nombre: "Contenedor PET", lat: -12.0752804, lng: -77.053767, materiales: ["Botellas Plásticas"] },
+            { nombre: "Contenedor Centro", lat: -12.0447545, lng: -77.0307409, materiales: ["Botellas Plásticas"] },
+            { nombre: "Contenedor Norte", lat: -12.0957098, lng: -77.0741867, materiales: ["Botellas Plásticas"] },
+            { nombre: "Contenedor ATE", lat: -12.1061877, lng: -76.9441014, materiales: ["PET", "Latas", "Cartón", "Vidrio"] },
+            { nombre: "Contenedor Ecológico", lat: -12.0853667, lng: -76.9695038, materiales: ["Cartón", "Vidrio", "Papel"] },
+            { nombre: "Contenedor Vidrio", lat: -12.1107122, lng: -77.0089571, materiales: ["Botellas de Vidrio"] },
+            { nombre: "Contenedor Múltiple 2", lat: -12.0634445, lng: -77.0364901, materiales: ["Vidrio", "Papel", "Plástico", "Metal"] },
+            { nombre: "Electrónicos", lat: -12.0633041, lng: -77.0363805, materiales: ["Baterías", "Electrónicos"] }
+        ];
+
+        const recompensas = [
+            { id: 1, nombre: "Café Gratis", descripcion: "Starbucks", icono: "☕", precio: 50, codigo: "COFFEE2024" },
+            { id: 2, nombre: "20% Off McDonald's", descripcion: "Toda la cadena", icono: "🍔", precio: 75, codigo: "MC20OFF" },
+            { id: 3, nombre: "Pasaje Metro", descripcion: "Viaje gratis", icono: "🚌", precio: 30, codigo: "METRO2024" },
+            { id: 4, nombre: "Botella Ecológica", descripcion: "500ml reutilizable", icono: "🥤", precio: 100, codigo: "BOTTLE500" },
+            { id: 5, nombre: "15% Off Tottus", descripcion: "En tu compra", icono: "🛒", precio: 120, codigo: "TOTTUS15" },
+            { id: 6, nombre: "Cine Gratis", descripcion: "Cineplanet 2D", icono: "🎬", precio: 150, codigo: "CINE2024" },
+            { id: 7, nombre: "Helado", descripcion: "Artesanal", icono: "🍦", precio: 40, codigo: "ICECREAM" },
+            { id: 8, nombre: "Uber Gratis", descripcion: "Hasta S/15", icono: "🚗", precio: 80, codigo: "UBER15" },
+            { id: 9, nombre: "Pizza", descripcion: "Mediana 2 ing.", icono: "🍕", precio: 90, codigo: "PIZZA2024" },
+            { id: 10, nombre: "Mochila", descripcion: "Tela reciclada", icono: "🎒", precio: 200, codigo: "BACKPACK" }
         ];
 
         let mapa;
         let marcadores = [];
+        let marcadorUsuario = null;
         let filtroActivo = 'todos';
+        let ordenActual = 'distancia';
+        let ecoCoins = parseInt(localStorage.getItem('ecoCoins')) || 0;
+        let puntosVisitados = JSON.parse(localStorage.getItem('puntosVisitados')) || [];
+        let recompensasCanjeadas = JSON.parse(localStorage.getItem('recompensasCanjeadas')) || [];
+        let ubicacionUsuario = null;
 
-        // Inicializar mapa
+        function toggleMenu() {
+            document.getElementById('sidebar').classList.toggle('activo');
+            document.getElementById('overlay').classList.toggle('activo');
+        }
+
+        function actualizarCoins() {
+            document.getElementById('coinsBalance').textContent = ecoCoins;
+            document.getElementById('tiendaCoins').textContent = ecoCoins;
+            localStorage.setItem('ecoCoins', ecoCoins);
+        }
+
+        function calcularDistancia(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function formatearDistancia(distancia) {
+            if (distancia < 1) return `${Math.round(distancia * 1000)}m`;
+            return `${distancia.toFixed(1)}km`;
+        }
+
+        function obtenerUbicacion() {
+            const infoDiv = document.getElementById('ubicacionInfo');
+            const textoDiv = document.getElementById('ubicacionTexto');
+            
+            if (!navigator.geolocation) {
+                infoDiv.className = 'ubicacion-info error';
+                textoDiv.textContent = 'GPS no soportado';
+                mostrarPuntos();
+                return;
+            }
+
+            infoDiv.className = 'ubicacion-info loading';
+            textoDiv.textContent = 'Activando GPS...';
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    ubicacionUsuario = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    };
+                    
+                    infoDiv.className = 'ubicacion-info';
+                    textoDiv.textContent = '📍 Ubicación activa';
+                    
+                    if (marcadorUsuario) mapa.removeLayer(marcadorUsuario);
+                    
+                    marcadorUsuario = L.marker([ubicacionUsuario.lat, ubicacionUsuario.lng], {
+                        icon: L.divIcon({
+                            className: '',
+                            html: `<div style="
+                                background: linear-gradient(135deg, #4299e1, #3182ce);
+                                width: 40px;
+                                height: 40px;
+                                border-radius: 50%;
+                                border: 4px solid white;
+                                box-shadow: 0 4px 12px rgba(66, 153, 225, 0.5);
+                                display: flex;
+                                align-items: center;
+                                justify-content: center;
+                                font-size: 20px;
+                            ">📍</div>`,
+                            iconSize: [40, 40],
+                            iconAnchor: [20, 20]
+                        })
+                    }).addTo(mapa);
+                    
+                    marcadorUsuario.bindPopup('<b>📍 Tú estás aquí</b>');
+                    mapa.flyTo([ubicacionUsuario.lat, ubicacionUsuario.lng], 13, { duration: 1.5 });
+                    mostrarPuntos();
+                },
+                (error) => {
+                    infoDiv.className = 'ubicacion-info error';
+                    let mensaje = 'Error GPS';
+                    if (error.code === 1) mensaje = 'Permiso denegado';
+                    textoDiv.textContent = mensaje;
+                    mostrarPuntos();
+                },
+                { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+            );
+        }
+
+        function centrarEnMiUbicacion() {
+            if (ubicacionUsuario) {
+                mapa.flyTo([ubicacionUsuario.lat, ubicacionUsuario.lng], 15, { duration: 1.5 });
+                mostrarNotificacion('Centrado en tu ubicación', '📍');
+            } else {
+                mostrarNotificacion('Activando GPS...', '⚠️');
+                obtenerUbicacion();
+            }
+        }
+
+        function ordenarPor(tipo) {
+            ordenActual = tipo;
+            document.querySelectorAll('.ordenar-btn').forEach(btn => {
+                btn.classList.remove('activo');
+                if (btn.dataset.orden === tipo) btn.classList.add('activo');
+            });
+            mostrarPuntos();
+        }
+
         function iniciar() {
-            mapa = L.map('mapa').setView([-12.0463, -77.0427], 11);
+            mapa = L.map('mapa', {
+                zoomControl: false
+            }).setView([-12.0463, -77.0427], 11);
+            
+            // Agregar zoom control en posición optimizada para móvil
+            L.control.zoom({ position: 'bottomright' }).addTo(mapa);
             
             L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 attribution: '© OpenStreetMap'
             }).addTo(mapa);
 
+            actualizarCoins();
             crearFiltros();
-            mostrarPuntos();
+            obtenerUbicacion();
+            cargarTienda();
         }
 
-        // Crear ícono según material principal
         function crearIcono(materiales) {
-            let color = '#808080';
-            let emoji = '♻️';
-            
-            if (materiales.includes('Plástico') || materiales.includes('PET') || materiales.includes('Botellas Plásticas')) {
-                color = '#FFD700'; emoji = '🥤';
-            } else if (materiales.includes('Papel') || materiales.includes('Cartón')) {
-                color = '#4169E1'; emoji = '📄';
-            } else if (materiales.includes('Vidrio') || materiales.includes('Botellas de Vidrio')) {
-                color = '#228B22'; emoji = '🍾';
-            } else if (materiales.includes('Baterías')) {
-                color = '#FF4500'; emoji = '🔋';
-            } else if (materiales.includes('Electrónicos')) {
-                color = '#800080'; emoji = '📱';
-            }
+            let color = '#808080', emoji = '♻️';
+            if (materiales.some(m => m.includes('Plástico') || m.includes('PET'))) { color = '#FFD700'; emoji = '🥤'; }
+            else if (materiales.some(m => m.includes('Papel') || m.includes('Cartón'))) { color = '#4169E1'; emoji = '📄'; }
+            else if (materiales.some(m => m.includes('Vidrio'))) { color = '#228B22'; emoji = '🍾'; }
+            else if (materiales.includes('Baterías')) { color = '#FF4500'; emoji = '🔋'; }
+            else if (materiales.includes('Electrónicos')) { color = '#800080'; emoji = '📱'; }
 
             return L.divIcon({
                 className: '',
                 html: `<div style="
                     background-color: ${color};
-                    width: 32px;
-                    height: 32px;
+                    width: 36px;
+                    height: 36px;
                     border-radius: 50%;
                     border: 3px solid white;
                     box-shadow: 0 2px 8px rgba(0,0,0,0.3);
                     display: flex;
                     align-items: center;
                     justify-content: center;
-                    font-size: 16px;
+                    font-size: 18px;
                 ">${emoji}</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
             });
         }
 
-        // Mostrar puntos en el mapa
+        function reciclarEnPunto(punto) {
+            const clave = `${punto.lat}-${punto.lng}`;
+            if (puntosVisitados.includes(clave)) {
+                mostrarNotificacion('Ya visitaste este punto hoy', '⚠️');
+                return;
+            }
+            
+            const monedasGanadas = Math.min(punto.materiales.length * 10, 50);
+            ecoCoins += monedasGanadas;
+            puntosVisitados.push(clave);
+            
+            localStorage.setItem('ecoCoins', ecoCoins);
+            localStorage.setItem('puntosVisitados', JSON.stringify(puntosVisitados));
+            
+            actualizarCoins();
+            mostrarNotificacion(`¡+${monedasGanadas} EcoCoins! 🪙`, '✅');
+            
+            event.target.disabled = true;
+            event.target.textContent = '✓ Visitado';
+            
+            // Cerrar menú en móvil después de reciclar
+            if (window.innerWidth <= 768) {
+                toggleMenu();
+            }
+        }
+
         function mostrarPuntos() {
             marcadores.forEach(m => mapa.removeLayer(m));
             marcadores = [];
 
-            const filtrados = filtroActivo === 'todos' 
-                ? puntos 
-                : puntos.filter(p => 
-                    p.materiales.some(m => m.toLowerCase().includes(filtroActivo))
-                );
+            let filtrados = filtroActivo === 'todos' ? puntos : 
+                puntos.filter(p => p.materiales.some(m => m.toLowerCase().includes(filtroActivo)));
+
+            filtrados = filtrados.map(p => {
+                const punto = {...p};
+                if (ubicacionUsuario) {
+                    punto.distancia = calcularDistancia(ubicacionUsuario.lat, ubicacionUsuario.lng, p.lat, p.lng);
+                } else {
+                    punto.distancia = Infinity;
+                }
+                return punto;
+            });
+
+            if (ordenActual === 'distancia' && ubicacionUsuario) {
+                filtrados.sort((a, b) => a.distancia - b.distancia);
+            } else {
+                filtrados.sort((a, b) => a.nombre.localeCompare(b.nombre));
+            }
 
             filtrados.forEach(p => {
-                const marcador = L.marker([p.lat, p.lng], {
-                    icon: crearIcono(p.materiales)
-                }).addTo(mapa);
+                const marcador = L.marker([p.lat, p.lng], { icon: crearIcono(p.materiales) }).addTo(mapa);
+                const clave = `${p.lat}-${p.lng}`;
+                const yaVisitado = puntosVisitados.includes(clave);
 
-                let popup = `<div style="min-width: 200px;">
-                    <h3 style="margin: 0 0 8px 0;">${p.nombre}</h3>`;
+                let popup = `<div style="min-width: 200px; padding: 8px;">
+                    <h3 style="margin: 0 0 8px 0; font-size: 16px;">${p.nombre}</h3>`;
                 
-                if (p.direccion) popup += `<p style="margin: 4px 0;">📍 ${p.direccion}</p>`;
+                if (p.distancia && p.distancia !== Infinity) {
+                    popup += `<p style="margin: 4px 0; color: #48bb78; font-weight: bold;">📍 ${formatearDistancia(p.distancia)}</p>`;
+                }
+                if (p.direccion) popup += `<p style="margin: 4px 0;">${p.direccion}</p>`;
                 if (p.operador) popup += `<p style="margin: 4px 0;">🏢 ${p.operador}</p>`;
-                if (p.horario) popup += `<p style="margin: 4px 0;">🕐 ${p.horario}</p>`;
-                if (p.descripcion) popup += `<p style="margin: 4px 0;">ℹ️ ${p.descripcion}</p>`;
                 popup += `<p style="margin: 4px 0;">♻️ ${p.materiales.join(', ')}</p>`;
                 popup += `</div>`;
 
@@ -313,19 +1013,17 @@
                 marcadores.push(marcador);
             });
 
-            document.getElementById('contador').textContent = `Puntos: ${filtrados.length}`;
+            document.getElementById('contador').textContent = `${filtrados.length} puntos`;
             crearCards(filtrados);
         }
 
-        // Crear filtros
         function crearFiltros() {
             const filtros = [
                 { id: 'todos', nombre: '🌍 Todos' },
                 { id: 'plástic', nombre: '🥤 Plástico' },
                 { id: 'papel', nombre: '📄 Papel' },
                 { id: 'vidrio', nombre: '🍾 Vidrio' },
-                { id: 'batería', nombre: '🔋 Baterías' },
-                { id: 'electrón', nombre: '📱 Electrónicos' }
+                { id: 'batería', nombre: '🔋 Baterías' }
             ];
 
             const cont = document.getElementById('filtros');
@@ -344,30 +1042,114 @@
             });
         }
 
-        // Crear tarjetas laterales
         function crearCards(puntos) {
             const cont = document.getElementById('cards');
             cont.innerHTML = '';
 
             puntos.forEach(p => {
+                const clave = `${p.lat}-${p.lng}`;
+                const yaVisitado = puntosVisitados.includes(clave);
+                const esCercano = p.distancia && p.distancia < 2;
+                
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = 'card' + (esCercano ? ' cercano' : '');
+                
+                let distanciaHTML = '';
+                if (p.distancia && p.distancia !== Infinity) {
+                    const claseDistancia = p.distancia < 2 ? '' : ' lejano';
+                    distanciaHTML = `<div class="distancia-badge${claseDistancia}">${formatearDistancia(p.distancia)}</div>`;
+                }
+                
                 card.innerHTML = `
+                    ${distanciaHTML}
                     <h3>${p.nombre}</h3>
                     ${p.direccion ? `<p>📍 ${p.direccion}</p>` : ''}
                     ${p.operador ? `<p>🏢 ${p.operador}</p>` : ''}
                     <div class="tags">
                         ${p.materiales.map(m => `<span class="tag">${m}</span>`).join('')}
                     </div>
+                    <button class="btn-reciclar" ${yaVisitado ? 'disabled' : ''} onclick="reciclarEnPunto(puntos.find(pt => pt.nombre === '${p.nombre.replace(/'/g, "\\'")}'))">
+                        ${yaVisitado ? '✓ Visitado' : `♻️ Reciclar (+${Math.min(p.materiales.length * 10, 50)} 🪙)`}
+                    </button>
                 `;
-                card.onclick = () => {
-                    mapa.flyTo([p.lat, p.lng], 16, { duration: 1.5 });
+                
+                card.onclick = (e) => {
+                    if (e.target.className !== 'btn-reciclar') {
+                        mapa.flyTo([p.lat, p.lng], 16, { duration: 1.5 });
+                        if (window.innerWidth <= 768) toggleMenu();
+                    }
                 };
+                
                 cont.appendChild(card);
             });
         }
 
-        // Iniciar cuando cargue
+        function abrirTienda() {
+            document.getElementById('modalTienda').classList.add('activo');
+            actualizarCoins();
+            cargarTienda();
+            if (window.innerWidth <= 768) toggleMenu();
+        }
+
+        function cerrarTienda() {
+            document.getElementById('modalTienda').classList.remove('activo');
+        }
+
+        function cargarTienda() {
+            const grid = document.getElementById('recompensasGrid');
+            grid.innerHTML = '';
+
+            recompensas.forEach(r => {
+                const canjeado = recompensasCanjeadas.includes(r.id);
+                const card = document.createElement('div');
+                card.className = 'recompensa-card' + (canjeado ? ' agotado' : '');
+                card.innerHTML = `
+                    <div class="recompensa-icon">${r.icono}</div>
+                    <div class="recompensa-nombre">${r.nombre}</div>
+                    <div class="recompensa-desc">${r.descripcion}</div>
+                    <div class="recompensa-precio">${r.precio} 🪙</div>
+                    ${canjeado ? 
+                        `<div class="cupon-codigo">${r.codigo}</div>` :
+                        `<button class="btn-canjear" ${ecoCoins < r.precio ? 'disabled' : ''} onclick="canjearRecompensa(${r.id})">
+                            ${ecoCoins < r.precio ? 'Saldo insuficiente' : 'Canjear'}
+                        </button>`
+                    }
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        function canjearRecompensa(id) {
+            const recompensa = recompensas.find(r => r.id === id);
+            if (!recompensa || ecoCoins < recompensa.precio) {
+                mostrarNotificacion('Saldo insuficiente', '❌');
+                return;
+            }
+
+            ecoCoins -= recompensa.precio;
+            recompensasCanjeadas.push(id);
+            
+            localStorage.setItem('ecoCoins', ecoCoins);
+            localStorage.setItem('recompensasCanjeadas', JSON.stringify(recompensasCanjeadas));
+            
+            actualizarCoins();
+            cargarTienda();
+            mostrarNotificacion(`¡Canjeado! Código: ${recompensa.codigo}`, '🎉');
+        }
+
+        function mostrarNotificacion(mensaje, icono) {
+            const notif = document.getElementById('notificacion');
+            document.getElementById('notificacionText').textContent = mensaje;
+            notif.querySelector('.notificacion-icon').textContent = icono;
+            notif.classList.add('activo');
+            
+            setTimeout(() => notif.classList.remove('activo'), 3000);
+        }
+
+        document.getElementById('modalTienda').addEventListener('click', (e) => {
+            if (e.target.id === 'modalTienda') cerrarTienda();
+        });
+
         window.onload = iniciar;
     </script>
 </body>
